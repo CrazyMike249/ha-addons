@@ -24,7 +24,7 @@ options:
       url: "http://31.192.216.10:8000/rmf_fm"
       type: mp3
 
-    - name: Trojka
+    - name: Trójka
       url: "http://stream3.polskieradio.pl:8904/"
       type: ogg
       
