@@ -50,15 +50,7 @@ Wszystkie stacje znajdują się w jednej liście `streams`.
 ### 1. Minimalna konfiguracja (tylko jedna stacja)
 
 ```yaml
-interval: 5
-timestamps: false
-
 streams:
   - name: "Radio 357"
     url: "https://stream.rcs.revma.com/ye5kghkgcm0uv"
     type: "aac"
-
-mqtt_enabled: false
-mqtt_host: ""
-mqtt_port: 1883
-mqtt_topic: "radio/metadata"
