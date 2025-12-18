@@ -1,8 +1,8 @@
 # Stream Metadata Monitor
 
-Add-on dla Home Assistant, który monitoruje metadane z internetowych stacji radiowych
+Add-on dla Home Assistant, któłry monitoruje metadane z internetowych stacji radiowych
 (AAC/ICY oraz OGG/Vorbis) i wypisuje je w logach. Idealny jako baza pod integrację
-z MQTT, automatyzacjami lub własnymi sensorami.
+z MQTT, automatyzacjami lub własnymi sensorami. Koniec z "Default media recevier" :).
 
 ---
 
