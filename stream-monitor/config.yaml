@@ -1,7 +1,7 @@
 name: Stream Metadata Monitor
-version: "v1.2.1"
-slug: stream-monitor
-description: "Monitoruje metadane AAC/OGG i wysyła je do logów lub dalej"
+version: 1.3.0
+slug: stream_monitor
+description: Monitoruje metadane AAC/OGG i wysyła je do logów lub dalej
 startup: services
 boot: auto
 arch:
@@ -13,11 +13,18 @@ options:
   interval: 5
   timestamps: false
 
-  radio_357: true
-  radio_nsw: true
-  radio_baobab: true
+  streams:
+    - name: "Radio 357"
+      url: "https://stream.rcs.revma.com/ye5kghkgcm0uv"
+      type: "aac"
 
-  custom_streams: []
+    - name: "Radio Nowy Świat"
+      url: "https://stream.nowyswiat.online/aac"
+      type: "aac"
+
+    - name: "Radio Baobab"
+      url: "https://stream.radiobaobab.pl/radiobaobab.ogg"
+      type: "ogg"
 
   mqtt_enabled: false
   mqtt_host: ""
@@ -28,11 +35,7 @@ schema:
   interval: int
   timestamps: bool
 
-  radio_357: bool
-  radio_nsw: bool
-  radio_baobab: bool
-
-  custom_streams:
+  streams:
     - name: str
       url: str
       type: str
@@ -42,9 +45,5 @@ schema:
   mqtt_port: int
   mqtt_topic: str
 
-ports: {}
-ports_description: {}
 map:
   - config:rw
-
-

@@ -19,32 +19,15 @@ options = load_options()
 INTERVAL = options.get("interval", 5)
 USE_TIMESTAMPS = options.get("timestamps", False)
 
+# Wczytujemy wszystkie stacje z config.yaml
 streams = {}
 
-if options.get("radio_357", True):
-    streams["Radio 357"] = {
-        "url": "https://stream.rcs.revma.com/ye5kghkgcm0uv",
-        "type": "aac",
-    }
-
-if options.get("radio_nsw", True):
-    streams["Radio Nowy Świat"] = {
-        "url": "https://stream.nowyswiat.online/aac",
-        "type": "aac",
-    }
-
-if options.get("radio_baobab", True):
-    streams["Radio Baobab"] = {
-        "url": "https://stream.radiobaobab.pl/radiobaobab.ogg",
-        "type": "ogg",
-    }
-
-for entry in options.get("custom_streams", []):
-    name = entry.get("name", "Custom Stream")
+for entry in options.get("streams", []):
+    name = entry.get("name")
     url = entry.get("url")
     stype = entry.get("type", "aac")
 
-    if url:
+    if name and url:
         streams[name] = {"url": url, "type": stype}
 
 last_titles = {name: None for name in streams}
