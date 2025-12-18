@@ -175,7 +175,7 @@ def mqtt_init():
     if not MQTT_ENABLED:
         return
 
-    mqtt_client = mqtt.Client()
+    mqtt_client = mqtt.Client(callback_api_version=2)
 
     if MQTT_USER and MQTT_PASS:
         mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
