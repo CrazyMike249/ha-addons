@@ -1,5 +1,5 @@
 name: Stream Metadata Monitor
-version: "1.1.0"
+version: "1.2.0"
 slug: stream_monitor
 description: "Monitoruje metadane AAC/OGG i wysy³a je do logów lub dalej"
 startup: services
