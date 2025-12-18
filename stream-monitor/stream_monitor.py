@@ -28,7 +28,7 @@ if options.get("radio_357", True):
     }
 
 if options.get("radio_nsw", True):
-    streams["Radio Nowy Œwiat"] = {
+    streams["Radio Nowy Åšwiat"] = {
         "url": "https://stream.nowyswiat.online/aac",
         "type": "aac",
     }
@@ -103,7 +103,7 @@ def get_ogg_artist_title(url: str) -> str | None:
             return None
 
         if artist and title:
-            return f"{artist} – {title}"
+            return f"{artist} â€“ {title}"
         return artist or title
 
     except Exception:
