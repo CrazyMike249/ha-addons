@@ -1,14 +1,13 @@
 import asyncio
 import subprocess
 import json
-import time
 from datetime import datetime
 import paho.mqtt.client as mqtt
 
 FFPROBE = "ffprobe"
 
 # ---------------------------------------------------------
-# Konfiguracja
+# Load config
 # ---------------------------------------------------------
 
 def load_options():
@@ -35,7 +34,7 @@ for entry in options.get("streams", []):
 last_titles = {name: None for name in streams}
 
 # ---------------------------------------------------------
-# Kolory logów
+# Colors
 # ---------------------------------------------------------
 
 class Color:
@@ -72,7 +71,7 @@ def run_ffprobe(cmd):
         return None
 
 # ---------------------------------------------------------
-# Dekodowanie tekstu
+# Decode text
 # ---------------------------------------------------------
 
 def decode_text(value: str) -> str:
@@ -87,7 +86,7 @@ def decode_text(value: str) -> str:
     return value
 
 # ---------------------------------------------------------
-# AAC / OGG / MP3 (ICY)
+# AAC / OGG / MP3
 # ---------------------------------------------------------
 
 def get_aac_streamtitle(url: str) -> str | None:
@@ -197,6 +196,18 @@ def mqtt_publish(name, title):
             log(f"MQTT publish failed: {e}", Color.RED)
 
 # ---------------------------------------------------------
+# MQTT TEST
+# ---------------------------------------------------------
+
+def mqtt_test():
+    if MQTT_ENABLED and mqtt_client:
+        try:
+            mqtt_client.publish("radio/test", "hello", qos=0, retain=True)
+            log("MQTT TEST SENT", Color.MAGENTA)
+        except Exception as e:
+            log(f"MQTT TEST FAILED: {e}", Color.RED)
+
+# ---------------------------------------------------------
 # Async polling
 # ---------------------------------------------------------
 
@@ -226,6 +237,7 @@ async def poll_loop():
 # ---------------------------------------------------------
 
 if __name__ == "__main__":
-    log("Start stream monitor (async + MP3 + MQTT + colors) v1.4.1", Color.CYAN)
+    log("Start stream monitor (async + MP3 + MQTT + colors) v1.4.2", Color.CYAN)
     mqtt_init()
+    mqtt_test()   # <-- KLUCZOWE: test publikacji
     asyncio.run(poll_loop())
