@@ -25,7 +25,7 @@ options:
       type: mp3
 
     - name: Trójka
-      url: "http://stream3.polskieradio.pl:8904/"
+      url: "http://41.dktr.pl:8000/trojka.ogg"
       type: ogg
       
     - name: "Radio Nowy Świat"
