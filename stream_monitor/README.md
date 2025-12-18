@@ -1,56 +1,43 @@
 # Stream Metadata Monitor
 
+Add-on dla Home Assistant, który monitoruje metadane streamów audio odtwarzanych przez wskazane encje `media_player.*`.  
+Działa automatycznie: gdy player zaczyna odtwarzać stream, add-on pobiera metadane bezpośrednio z `media_content_id` i wypisuje je w logach.
 
-Add-on dla Home Assistant, któłry monitoruje metadane z internetowych stacji radiowych
-(AAC/ICY oraz OGG/Vorbis) i wypisuje je w logach. Idealny jako baza pod integrację
-z MQTT, automatyzacjami lub własnymi sensorami. Koniec z "Default media recevier" :).
+Wspiera:
+- ICY/AAC (`StreamTitle`)
+- OGG/Vorbis (`ARTIST` + `TITLE`)
+- dowolne źródła streamów (URL pobierany z HA, nic nie jest na sztywno)
 
 ---
 
 ## Funkcje
 
-- Odczyt metadanych:
-  - AAC/ICY (`StreamTitle`)
-  - OGG/Vorbis (`ARTIST` + `TITLE`)
-- Obsługa dowolnej liczby stacji
-- Pełna konfiguracja w `config.yaml`
-- Możliwość dodawania własnych stacji (name + url + type)
-- Opcjonalne timestampy w logach
-- Przygotowanie pod MQTT (opcjonalne)
+- Integracja z Home Assistant przez **WebSocket API**
+- Monitorowanie wybranych encji `media_player`
+- Automatyczne wykrywanie odtwarzania (`state == playing`)
+- Pobieranie metadanych z URL znajdującego się w `media_content_id`
+- Obsługa AAC/ICY oraz OGG/Vorbis
+- Logowanie zmian tytułów w czasie rzeczywistym
+- Obsługa wielu playerów jednocześnie
+- Automatyczne zatrzymywanie pollingu, gdy player przestaje grać
+- Odporność na rozłączenia WebSocket (auto-reconnect)
 
 ---
 
-## Konfiguracja
+## Jak to działa
 
-Wszystkie stacje znajdują się w jednej liście `streams`.
+1. Add-on łączy się z Home Assistant przez WebSocket API.
+2. Subskrybuje eventy `state_changed`.
+3. Gdy wskazany `media_player`:
+   - zmieni stan na `playing`
+   - a w `media_content_id` znajduje się URL streamu
 
-### Pola stacji:
+   → add-on uruchamia polling metadanych dla tego URL.
 
-| Pole | Opis |
-|------|------|
-| `name` | Nazwa stacji wyświetlana w logach |
-| `url` | URL strumienia |
-| `type` | `aac` lub `ogg` |
+4. Gdy player przestaje grać → polling zostaje zatrzymany.
 
-### Pola globalne:
+Przykładowe logi:
 
-| Pole | Opis |
-|------|------|
-| `interval` | Częstotliwość odpytywania (sekundy) |
-| `timestamps` | Czy dodawać timestampy do logów |
-| `mqtt_enabled` | Czy wysyłać dane do MQTT (na przyszłość) |
-| `mqtt_host` | Adres brokera MQTT |
-| `mqtt_port` | Port brokera |
-| `mqtt_topic` | Topic dla metadanych |
+[HA] media_player.kuchnia → PLAYING (https://stream.nowyswiat.online/aac) media_player.kuchnia: Maanam – Kocham Cię, Kochanie Moje 
+[HA] media_player.kuchnia → STOPPED
 
----
-
-## Przykładowe konfiguracje
-
-### 1. Minimalna konfiguracja (tylko jedna stacja)
-
-```yaml
-streams:
-  - name: "Radio 357"
-    url: "https://stream.rcs.revma.com/ye5kghkgcm0uv"
-    type: "aac"
