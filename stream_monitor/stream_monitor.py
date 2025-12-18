@@ -33,6 +33,34 @@ for entry in options.get("streams", []):
 last_titles = {name: None for name in streams}
 
 
+# ---------------------------------------------------------
+# Dekodowanie polskich znaków dla OGG/Vorbis
+# ---------------------------------------------------------
+
+def decode_text(value: str) -> str:
+    """
+    Próbuje zdekodować tekst z różnych kodowań,
+    bo OGG/Vorbis często nie używa UTF-8.
+    """
+    if not value:
+        return value
+
+    # ffprobe zwraca str, ale z błędami — zamieniamy na bytes
+    raw = value.encode("latin1", errors="ignore")
+
+    for enc in ("utf-8", "iso-8859-2", "windows-1250", "latin1"):
+        try:
+            return raw.decode(enc)
+        except Exception:
+            pass
+
+    return value  # fallback
+
+
+# ---------------------------------------------------------
+# Pobieranie metadanych AAC/ICY
+# ---------------------------------------------------------
+
 def get_aac_streamtitle(url: str) -> str | None:
     cmd = [
         FFPROBE,
@@ -55,6 +83,10 @@ def get_aac_streamtitle(url: str) -> str | None:
     return title or None
 
 
+# ---------------------------------------------------------
+# Pobieranie metadanych OGG/Vorbis (ARTIST + TITLE)
+# ---------------------------------------------------------
+
 def get_ogg_artist_title(url: str) -> str | None:
     cmd = [
         FFPROBE,
@@ -69,7 +101,7 @@ def get_ogg_artist_title(url: str) -> str | None:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        encoding="utf-8",
+        encoding="latin1",  # kluczowe!
     )
 
     try:
@@ -79,19 +111,23 @@ def get_ogg_artist_title(url: str) -> str | None:
             return None
 
         tags = streams_data[0].get("tags", {})
-        artist = tags.get("ARTIST", "").strip()
-        title = tags.get("TITLE", "").strip()
+        artist = decode_text(tags.get("ARTIST", "").strip())
+        title = decode_text(tags.get("TITLE", "").strip())
 
         if not artist and not title:
             return None
 
         if artist and title:
-            return f"{artist} Ă˘â??â?ś {title}"
+            return f"{artist} – {title}"
         return artist or title
 
     except Exception:
         return None
 
+
+# ---------------------------------------------------------
+# Główna pętla monitorowania
+# ---------------------------------------------------------
 
 def poll_streams(interval: int) -> None:
     while True:
