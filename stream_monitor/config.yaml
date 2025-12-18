@@ -1,7 +1,9 @@
+map:
+  - config:rw
 name: Stream Metadata Monitor
 version: 2.0.0
 slug: stream_monitor
-description: Monitoruje metadane streamów odtwarzanych przez wskazane media_player w Home Assistant
+description: Uniwersalny monitor metadanych streamów dla wybranych media_player w Home Assistant
 startup: services
 boot: auto
 arch:
@@ -13,13 +15,18 @@ options:
   interval: 5
   timestamps: true
 
-  # Lista encji media_player, które mają być monitorowane
+  # Lista encji media_player do monitorowania
   players:
-    - media_player.salon
-    - media_player.kuchnia
+    - media_player.android_tv_cast
+    - media_player.vlc
 
   # WebSocket API Home Assistant
-  ha_url: "ws://supervisor/core/api/websocket"
+  ha_url: "ws://homeassistant.local:8123/api/websocket"
+
+  # REST API Home Assistant (do fallbacku, gdy WebSocket nie poda URL)
+  ha_http_url: "http://supervisor/core/api"
+
+  # Long-Lived Access Token
   ha_token: ""
 
 schema:
@@ -30,6 +37,7 @@ schema:
     - str
 
   ha_url: str
+  ha_http_url: str
   ha_token: str
 
 map:

@@ -1,14 +1,15 @@
 import base64
-import hashlib
 import json
 import os
 import socket
 import ssl
+import subprocess
 import threading
 import time
 from datetime import datetime
 from urllib.parse import urlparse
-import subprocess
+from urllib.request import Request, urlopen
+from urllib.error import URLError, HTTPError
 
 FFPROBE = "ffprobe"
 
@@ -31,6 +32,7 @@ INTERVAL = options.get("interval", 5)
 USE_TIMESTAMPS = options.get("timestamps", False)
 
 HA_URL = options.get("ha_url", "ws://supervisor/core/api/websocket")
+HA_HTTP_URL = options.get("ha_http_url", "http://supervisor/core/api")
 HA_TOKEN = options.get("ha_token", "")
 PLAYERS = set(options.get("players", []))
 
@@ -40,7 +42,7 @@ lock = threading.Lock()
 
 
 # =========================================================
-# Pomocnicze logowanie
+# Logowanie
 # =========================================================
 
 def log(msg: str) -> None:
@@ -78,10 +80,6 @@ def get_aac_streamtitle(url: str) -> str | None:
 
 
 def decode_text(value: str) -> str:
-    """
-    Próbuje zdekodować tekst z różnych kodowań,
-    bo OGG/Vorbis często nie używa UTF-8.
-    """
     if not value:
         return value
 
@@ -130,14 +128,15 @@ def get_ogg_artist_title(url: str) -> str | None:
             return f"{artist} – {title}"
         return artist or title
 
-    except Exception:
+    except Exception as e:
+        log(f"[META] Błąd parsowania OGG/Vorbis dla {url}: {e}")
         return None
 
 
 def get_stream_metadata(url: str) -> str | None:
     """
-    Próbuje najpierw AAC/ICY, potem OGG/Vorbis.
-    Zwraca pojedynczy string z tytułem.
+    Najpierw próba ICY/AAC (StreamTitle), potem OGG/Vorbis (ARTIST + TITLE).
+    Zwraca pojedynczy string z tytułem lub None.
     """
     title = get_aac_streamtitle(url)
     if title:
@@ -147,6 +146,49 @@ def get_stream_metadata(url: str) -> str | None:
     if title:
         return title
 
+    return None
+
+
+# =========================================================
+# REST fallback: pobieranie media_content_id
+# =========================================================
+
+def get_media_url_via_rest(entity_id: str) -> str | None:
+    if not HA_TOKEN:
+        log(f"[REST] Brak ha_token – nie mogę pobrać URL dla {entity_id}")
+        return None
+
+    api_url = f"{HA_HTTP_URL.rstrip('/')}/states/{entity_id}"
+    log(f"[REST] Pobieram media_content_id dla {entity_id} z {api_url}")
+
+    req = Request(api_url)
+    req.add_header("Authorization", f"Bearer {HA_TOKEN}")
+    req.add_header("Content-Type", "application/json")
+    req.add_header("Accept", "application/json")
+
+    try:
+        with urlopen(req, timeout=10) as resp:
+            body = resp.read().decode("utf-8")
+            data = json.loads(body)
+    except HTTPError as e:
+        log(f"[REST] HTTPError dla {entity_id}: {e.code} {e.reason}")
+        return None
+    except URLError as e:
+        log(f"[REST] URLError dla {entity_id}: {e}")
+        return None
+    except Exception as e:
+        log(f"[REST] Błąd podczas pobierania stanu {entity_id}: {e}")
+        return None
+
+    attributes = data.get("attributes", {})
+    url = attributes.get("media_content_id")
+    log(f"[REST] Odpowiedź REST dla {entity_id}: media_content_id={url!r}")
+
+    if url and isinstance(url, str) and url.startswith("http"):
+        log(f"[REST] media_content_id dla {entity_id}: {url}")
+        return url
+
+    log(f"[REST] Brak poprawnego media_content_id dla {entity_id}")
     return None
 
 
@@ -169,7 +211,7 @@ def polling_worker(entity_id: str, url: str, stop_event: threading.Event) -> Non
                     if state is not None:
                         state["last_title"] = title
 
-                log(f"{entity_id}: {title}")
+                log(f"[META] {entity_id} → zmiana metadanych: {title}")
         except Exception as e:
             log(f"[POLL] Błąd podczas pobierania metadanych dla {entity_id}: {e}")
 
@@ -183,12 +225,15 @@ def start_polling(entity_id: str, url: str) -> None:
         state = player_states.get(entity_id)
 
         if state is not None:
+            log(f"[POLL] Restart pollingu dla {entity_id}")
             old_event = state.get("stop_event")
             old_thread = state.get("thread")
             if old_event is not None:
                 old_event.set()
             if old_thread is not None and old_thread.is_alive():
                 old_thread.join(timeout=1.0)
+
+        log(f"[POLL] Uruchamiam polling dla {entity_id} (URL: {url})")
 
         stop_event = threading.Event()
         thread = threading.Thread(
@@ -211,6 +256,8 @@ def stop_polling(entity_id: str) -> None:
         if not state:
             return
 
+        log(f"[POLL] Zatrzymuję polling dla {entity_id}")
+
         stop_event = state.get("stop_event")
         thread = state.get("thread")
 
@@ -223,7 +270,7 @@ def stop_polling(entity_id: str) -> None:
 
 
 # =========================================================
-# Minimalny klient WebSocket (bez dodatkowych bibliotek)
+# Minimalny klient WebSocket
 # =========================================================
 
 class SimpleWebSocket:
@@ -242,6 +289,7 @@ class SimpleWebSocket:
         if port is None:
             port = 443 if scheme == "wss" else 80
 
+        log(f"[WS] Nawiązywanie połączenia TCP z {host}:{port} (scheme={scheme})")
         raw_sock = socket.create_connection((host, port), timeout=10)
 
         if scheme == "wss":
@@ -249,6 +297,10 @@ class SimpleWebSocket:
             self.sock = context.wrap_socket(raw_sock, server_hostname=host)
         else:
             self.sock = raw_sock
+
+        # Po ustanowieniu połączenia – brak timeoutu na recv,
+        # żeby brak eventów nie powodował rozłączenia.
+        self.sock.settimeout(None)
 
         key = base64.b64encode(os.urandom(16)).decode("ascii")
         headers = [
@@ -261,6 +313,7 @@ class SimpleWebSocket:
             "\r\n",
         ]
         request = "\r\n".join(headers)
+        log(f"[WS] Wysyłam handshake WebSocket na {path}")
         self.sock.sendall(request.encode("ascii"))
 
         response = b""
@@ -272,6 +325,8 @@ class SimpleWebSocket:
 
         if b" 101 " not in response:
             raise ConnectionError(f"Handshake WebSocket nieudany: {response!r}")
+
+        log("[WS] Handshake WebSocket OK")
 
     def send_text(self, message: str):
         if self.sock is None:
@@ -301,6 +356,7 @@ class SimpleWebSocket:
             b ^ mask_key[i % 4] for i, b in enumerate(payload)
         )
 
+        log(f"[WS] Wysyłam frame tekstowy ({len(payload)} bajtów)")
         self.sock.sendall(header + masked_payload)
 
     def recv_text(self) -> str:
@@ -334,9 +390,11 @@ class SimpleWebSocket:
                 b ^ mask_key[i % 4] for i, b in enumerate(payload)
             )
 
+        # Frame zamykający
         if opcode == 0x8:
             raise ConnectionError("Otrzymano frame zamykający WebSocket")
 
+        # Pong / ping / inne opcodes – ignorujemy, zostawiamy tylko text frames
         if opcode != 0x1:
             return ""
 
@@ -358,10 +416,11 @@ class SimpleWebSocket:
             except Exception:
                 pass
             self.sock = None
+        log("[WS] Połączenie WebSocket zamknięte")
 
 
 # =========================================================
-# Listener Home Assistant (WebSocket)
+# Listener Home Assistant (WebSocket + REST fallback)
 # =========================================================
 
 def ha_listener():
@@ -372,6 +431,8 @@ def ha_listener():
     if not PLAYERS:
         log("[HA] Brak zdefiniowanych players w konfiguracji – listener nie zostanie uruchomiony")
         return
+
+    log(f"[HA] Monitorowane encje: {', '.join(sorted(PLAYERS))}")
 
     while True:
         ws = SimpleWebSocket(HA_URL)
@@ -387,17 +448,22 @@ def ha_listener():
             }
             ws.send_text(json.dumps(auth_msg))
 
-            # Odpowiedź auth_required / auth_ok / auth_invalid
+            # Oczekujemy auth_required i auth_ok
             raw = ws.recv_text()
             if not raw:
-                raise ConnectionError("Brak odpowiedzi auth z HA")
+                raise ConnectionError("Brak odpowiedzi auth_required z HA")
 
             msg = json.loads(raw)
+            log(f"[HA] Odpowiedź auth_required/auth: {msg}")
             if msg.get("type") != "auth_required":
                 log(f"[HA] Oczekiwano auth_required, otrzymano: {msg}")
-            # HA po auth_required oczekuje auth, które już wysłaliśmy, więc kolejne:
+
             raw = ws.recv_text()
+            if not raw:
+                raise ConnectionError("Brak odpowiedzi auth_ok z HA")
+
             msg = json.loads(raw)
+            log(f"[HA] Odpowiedź auth_ok: {msg}")
             if msg.get("type") != "auth_ok":
                 raise ConnectionError(f"Auth nieudane: {msg}")
 
@@ -419,6 +485,7 @@ def ha_listener():
                 try:
                     data = json.loads(raw)
                 except json.JSONDecodeError:
+                    log("[HA] Otrzymano niepoprawny JSON – pomijam")
                     continue
 
                 if data.get("type") != "event":
@@ -427,6 +494,7 @@ def ha_listener():
                 event = data.get("event", {})
                 edata = event.get("data", {})
                 entity_id = edata.get("entity_id")
+
                 if entity_id not in PLAYERS:
                     continue
 
@@ -434,17 +502,29 @@ def ha_listener():
                 state = new_state.get("state")
                 attrs = new_state.get("attributes") or {}
 
+                log(f"[HA] {entity_id} → stan: {state}, atrybuty: keys={list(attrs.keys())}")
+
+                # Jeśli player gra – potrzebujemy URL
                 if state == "playing":
                     stream_url = attrs.get("media_content_id")
+
+                    if stream_url:
+                        log(f"[HA] {entity_id} → URL z WebSocket: {stream_url}")
+                    else:
+                        log(f"[HA] {entity_id} → PLAYING bez media_content_id – próbuję REST")
+                        stream_url = get_media_url_via_rest(entity_id)
+
                     if stream_url and isinstance(stream_url, str) and stream_url.startswith("http"):
                         log(f"[HA] {entity_id} → PLAYING ({stream_url})")
                         start_polling(entity_id, stream_url)
+                    else:
+                        log(f"[HA] {entity_id} → PLAYING, ale brak poprawnego URL – pomijam")
                 else:
-                    log(f"[HA] {entity_id} → STOPPED")
+                    log(f"[HA] {entity_id} → STOPPED ({state})")
                     stop_polling(entity_id)
 
         except Exception as e:
-            log(f"[HA] Błąd WebSocket: {e}. Ponowna próba za 5 sekund...")
+            log(f"[WS] Błąd WebSocket: {e}. Ponowna próba za 5 sekund...")
             try:
                 ws.close()
             except Exception:
@@ -457,13 +537,12 @@ def ha_listener():
 # =========================================================
 
 if __name__ == "__main__":
-    # Uruchamiamy listener HA w osobnym wątku
+    log("[MAIN] Start stream_monitor – tryb uniwersalny (media_player + REST fallback, diagnostyka włączona).")
+    log(f"[MAIN] Konfiguracja: interval={INTERVAL}, players={sorted(PLAYERS)}, ha_url={HA_URL}, ha_http_url={HA_HTTP_URL}")
+
     ha_thread = threading.Thread(target=ha_listener, daemon=True)
     ha_thread.start()
 
-    # Główna pętla nic nie robi – cała logika jest w wątkach
-    # Zostawiamy prosty "watchdog", żeby kontener nie kończył pracy
-    log("[MAIN] Start stream_monitor z integracją HA (WebSocket + media_content_id).")
     try:
         while True:
             time.sleep(60)
