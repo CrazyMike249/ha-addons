@@ -1,6 +1,7 @@
 name: Stream Metadata Monitor
 version: 1.4.0
 slug: stream_monitor
+url: https://github.com/CrazyMike249/ha-addons/tree/main/stream_monitor
 description: Simple async stream metadata monitor with AAC/OGG/MP3, MQTT and colored logs
 startup: services
 boot: auto
@@ -26,6 +27,14 @@ options:
     - name: Trojka
       url: "http://stream3.polskieradio.pl:8904/"
       type: ogg
+      
+    - name: "Radio Nowy Świat"
+      url: "https://stream.nowyswiat.online/aac"
+      type: "aac"
+
+    - name: "Radio Baobab"
+      url: "https://stream.radiobaobab.pl/radiobaobab.ogg"
+      type: "ogg"
 
   # MQTT (opcjonalne)
   mqtt_enabled: false
