@@ -1,7 +1,7 @@
 
 ---
 
-# 🟦 **6. CHANGELOG.md (1.3.0 → 1.4.0)**
+# 🟦 **CHANGELOG.md (1.3.0 → 1.4.0)**
 
 ```markdown
 # Changelog
