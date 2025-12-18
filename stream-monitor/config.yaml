@@ -1,0 +1,46 @@
+name: Stream Metadata Monitor
+version: "1.1.0"
+slug: stream_monitor
+description: "Monitoruje metadane AAC/OGG i wysy³a je do logów lub dalej"
+startup: services
+boot: auto
+arch:
+  - amd64
+  - armv7
+  - aarch64
+
+options:
+  interval: 5
+  timestamps: false
+
+  radio_357: true
+  radio_nsw: true
+  radio_baobab: true
+
+  custom_streams: []
+
+  mqtt_enabled: false
+  mqtt_host: ""
+  mqtt_port: 1883
+  mqtt_topic: "radio/metadata"
+
+schema:
+  interval: int
+  timestamps: bool
+
+  radio_357: bool
+  radio_nsw: bool
+  radio_baobab: bool
+
+  custom_streams:
+    - str
+
+  mqtt_enabled: bool
+  mqtt_host: str?
+  mqtt_port: int
+  mqtt_topic: str
+
+ports: {}
+ports_description: {}
+map:
+  - config:rw
