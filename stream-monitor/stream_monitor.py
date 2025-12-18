@@ -2,26 +2,23 @@ import subprocess
 import time
 import json
 from datetime import datetime
-import os
 
 FFPROBE = "ffprobe"
 
-# Wczytanie konfiguracji add-onu
+
 def load_options():
     try:
         with open("/data/options.json", "r") as f:
             return json.load(f)
     except Exception:
         return {}
-        
+
 
 options = load_options()
 
-# Konfiguracja
 INTERVAL = options.get("interval", 5)
 USE_TIMESTAMPS = options.get("timestamps", False)
 
-# Stacje wbudowane
 streams = {}
 
 if options.get("radio_357", True):
@@ -31,7 +28,7 @@ if options.get("radio_357", True):
     }
 
 if options.get("radio_nsw", True):
-    streams["Radio Nowy Åšwiat"] = {
+    streams["Radio Nowy Œwiat"] = {
         "url": "https://stream.nowyswiat.online/aac",
         "type": "aac",
     }
@@ -42,9 +39,13 @@ if options.get("radio_baobab", True):
         "type": "ogg",
     }
 
-# Custom streams
-for url in options.get("custom_streams", []):
-    streams[url] = {"url": url, "type": "aac"}  # domyÅ›lnie AAC
+for entry in options.get("custom_streams", []):
+    name = entry.get("name", "Custom Stream")
+    url = entry.get("url")
+    stype = entry.get("type", "aac")
+
+    if url:
+        streams[name] = {"url": url, "type": stype}
 
 last_titles = {name: None for name in streams}
 
@@ -102,7 +103,7 @@ def get_ogg_artist_title(url: str) -> str | None:
             return None
 
         if artist and title:
-            return f"{artist} â€“ {title}"
+            return f"{artist} – {title}"
         return artist or title
 
     except Exception:

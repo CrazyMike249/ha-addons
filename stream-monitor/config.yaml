@@ -33,7 +33,9 @@ schema:
   radio_baobab: bool
 
   custom_streams:
-    - str
+    - name: str
+      url: str
+      type: str
 
   mqtt_enabled: bool
   mqtt_host: str?

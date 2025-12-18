@@ -1,12 +1,18 @@
-# Changelog â€” Stream Metadata Monitor
+# Changelog
 
-## 1.1.0 â€” 2025-01-15
-- Dodano obsÅ‚ugÄ™ MQTT
-- Dodano opcjÄ™ `custom_streams`
-- Poprawiono stabilnoÅ›Ä‡ odczytu metadanych AAC
-- Refaktoryzacja kodu startowego
+## 1.2.0
+- Migracja konfiguracji z `config.json` do `config.yaml`.
+- Dodano obs³ugê nazw dla `custom_streams`.
+- Rozszerzono konfiguracjê o:
+  - interval
+  - timestamps
+  - w³¹czanie/wy³¹czanie stacji
+  - custom streams (name + url + type)
+  - ustawienia MQTT (na przysz³oœæ)
 
-## 1.0.0 â€” 2024-12-20
-- Pierwsza publiczna wersja addâ€‘ona
-- ObsÅ‚uga Radio 357, Radio Nowy Åšwiat i Radio Baobab
-- Logowanie metadanych do konsoli
+## 1.1.0
+- Dodano konfiguracjê: interval, timestamps, custom streams (bez nazw), MQTT.
+- Dodano mo¿liwoœæ wy³¹czania stacji.
+
+## 1.0.0
+- Pierwsza dzia³aj¹ca wersja add-onu.
