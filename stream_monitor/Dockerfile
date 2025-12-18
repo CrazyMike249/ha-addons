@@ -1,16 +1,19 @@
-ARG BUILD_FROM=ghcr.io/hassio-addons/base-python:13.2.0
-FROM $BUILD_FROM
+FROM python:3.12-slim
 
-# ffmpeg/ffprobe
-RUN apk add --no-cache ffmpeg
+# Instalacja ffmpeg (zawiera ffprobe)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# MQTT client
+# Instalacja klienta MQTT
 RUN pip install --no-cache-dir paho-mqtt
 
-COPY run.sh /
+WORKDIR /app
+
 COPY stream_monitor.py /app/stream_monitor.py
+COPY run.sh /app/run.sh
 
-RUN chmod a+x /run.sh
+RUN chmod +x /app/run.sh
 
-CMD [ "/run.sh" ]
-
+CMD ["/app/run.sh"]
