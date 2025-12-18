@@ -1,4 +1,4 @@
-#!/usr/bin/with-contenv bash
+#!/usr/bin/env bash
 set -e #
 
 echo "[RUN] Starting Stream Metadata Monitor 1.4.0..."
