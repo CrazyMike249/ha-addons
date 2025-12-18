@@ -3,7 +3,6 @@ version: 1.3.0
 slug: stream_monitor
 description: Monitoruje metadane AAC/OGG i wysyła je do logów lub dalej
 url: "https://github.com/CrazyMike249/ha-addons/tree/main/stream_monitor"
-documentation: "https://github.com/CrazyMike249/ha-addons/blob/main/stream_monitor/README.md"
 startup: services
 boot: auto
 arch:
