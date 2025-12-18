@@ -1,9 +1,7 @@
-map:
-  - config:rw
 name: Stream Metadata Monitor
-version: 2.0.0
+version: 1.3.0
 slug: stream_monitor
-description: Uniwersalny monitor metadanych streamów dla wybranych media_player w Home Assistant
+description: Monitoruje metadane AAC/OGG i wysyła je do logów lub dalej
 startup: services
 boot: auto
 arch:
@@ -13,32 +11,39 @@ arch:
 
 options:
   interval: 5
-  timestamps: true
+  timestamps: false
 
-  # Lista encji media_player do monitorowania
-  players:
-    - media_player.android_tv_cast
-    - media_player.vlc
+  streams:
+    - name: "Radio 357"
+      url: "https://stream.rcs.revma.com/ye5kghkgcm0uv"
+      type: "aac"
 
-  # WebSocket API Home Assistant
-  ha_url: "ws://homeassistant.local:8123/api/websocket"
+    - name: "Radio Nowy Świat"
+      url: "https://stream.nowyswiat.online/aac"
+      type: "aac"
 
-  # REST API Home Assistant (do fallbacku, gdy WebSocket nie poda URL)
-  ha_http_url: "http://supervisor/core/api"
+    - name: "Radio Baobab"
+      url: "https://stream.radiobaobab.pl/radiobaobab.ogg"
+      type: "ogg"
 
-  # Long-Lived Access Token
-  ha_token: ""
+  mqtt_enabled: false
+  mqtt_host: ""
+  mqtt_port: 1883
+  mqtt_topic: "radio/metadata"
 
 schema:
   interval: int
   timestamps: bool
 
-  players:
-    - str
+  streams:
+    - name: str
+      url: str
+      type: str
 
-  ha_url: str
-  ha_http_url: str
-  ha_token: str
+  mqtt_enabled: bool
+  mqtt_host: str?
+  mqtt_port: int
+  mqtt_topic: str
 
 map:
   - config:rw
