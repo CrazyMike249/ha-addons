@@ -20,7 +20,7 @@ options:
       url: "https://stream.rcs.revma.com/ye5kghkgcm0uv.aac"
       type: aac
 
-    - name: RMF_FM
+    - name: RMF FM
       url: "http://31.192.216.10:8000/rmf_fm"
       type: mp3
 
