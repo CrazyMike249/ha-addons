@@ -16,7 +16,7 @@ options:
 
   # Lista streamów
   streams:
-    - name: Radio357
+    - name: Radio 357
       url: "https://stream.rcs.revma.com/ye5kghkgcm0uv.aac"
       type: aac
 
