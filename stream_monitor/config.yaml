@@ -19,14 +19,6 @@ options:
     - name: Radio 357
       url: "https://stream.rcs.revma.com/ye5kghkgcm0uv.aac"
       type: aac
-
-    - name: RMF FM
-      url: "http://31.192.216.10:8000/rmf_fm"
-      type: mp3
-
-    - name: Trójka
-      url: "https://stream13.polskieradio.pl/pr3/pr3.sdp/playlist.m3u8"
-      type: mp3
       
     - name: "Radio Nowy Świat"
       url: "https://stream.nowyswiat.online/aac"
