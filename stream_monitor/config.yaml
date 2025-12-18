@@ -20,7 +20,7 @@ options:
       url: "https://stream.rcs.revma.com/ye5kghkgcm0uv"
       type: "aac"
 
-    - name: "Radio Nowy Ĺšwiat"
+    - name: "Radio Nowy Świat"
       url: "https://stream.nowyswiat.online/aac"
       type: "aac"
 
