@@ -1,10 +1,12 @@
 
----
-
-# 🟦 **CHANGELOG.md (1.3.0 → 1.4.0)**
-
 ```markdown
 # Changelog
+
+## 1.4.1 — 2025-12-18
+### Nowe funkcje
+- Dodano obsługę MQTT user/pass
+- Poprawiono stabilność połączenia MQTT
+- Dodano logi błędów MQTT
 
 ## 1.4.0 — 2025-12-18
 ### Nowe funkcje

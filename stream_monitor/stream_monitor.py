@@ -24,17 +24,11 @@ INTERVAL = options.get("interval", 5)
 USE_TIMESTAMPS = options.get("timestamps", False)
 PRINT_CHANGES_ONLY = True
 
-# MQTT
-MQTT_ENABLED = options.get("mqtt_enabled", False)
-MQTT_HOST = options.get("mqtt_host", "localhost")
-MQTT_PORT = options.get("mqtt_port", 1883)
-MQTT_TOPIC = options.get("mqtt_topic", "radio/metadata")
-
 streams = {}
 for entry in options.get("streams", []):
     name = entry.get("name")
     url = entry.get("url")
-    stype = entry.get("type")  # aac / ogg / mp3 / None
+    stype = entry.get("type")
     if name and url:
         streams[name] = {"url": url, "type": stype}
 
@@ -93,7 +87,7 @@ def decode_text(value: str) -> str:
     return value
 
 # ---------------------------------------------------------
-# AAC / OGG / MP3 (ICY) metadata
+# AAC / OGG / MP3 (ICY)
 # ---------------------------------------------------------
 
 def get_aac_streamtitle(url: str) -> str | None:
@@ -156,7 +150,6 @@ def get_metadata(url: str, stype: str | None) -> str | None:
     if stype == "mp3":
         return get_mp3_icy(url)
 
-    # Auto-detect
     for fn in (get_aac_streamtitle, get_mp3_icy, get_ogg_artist_title):
         title = fn(url)
         if title:
@@ -167,22 +160,41 @@ def get_metadata(url: str, stype: str | None) -> str | None:
 # MQTT
 # ---------------------------------------------------------
 
+MQTT_ENABLED = options.get("mqtt_enabled", False)
+MQTT_HOST = options.get("mqtt_host", "localhost")
+MQTT_PORT = options.get("mqtt_port", 1883)
+MQTT_TOPIC = options.get("mqtt_topic", "radio/metadata")
+
+MQTT_USER = options.get("mqtt_user")
+MQTT_PASS = options.get("mqtt_pass")
+
 mqtt_client = None
 
 def mqtt_init():
     global mqtt_client
     if not MQTT_ENABLED:
         return
+
     mqtt_client = mqtt.Client()
-    mqtt_client.connect(MQTT_HOST, MQTT_PORT, 60)
-    mqtt_client.loop_start()
-    log(f"MQTT connected to {MQTT_HOST}:{MQTT_PORT}", Color.MAGENTA)
+
+    if MQTT_USER and MQTT_PASS:
+        mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
+
+    try:
+        mqtt_client.connect(MQTT_HOST, MQTT_PORT, 60)
+        mqtt_client.loop_start()
+        log(f"MQTT connected to {MQTT_HOST}:{MQTT_PORT}", Color.MAGENTA)
+    except Exception as e:
+        log(f"MQTT connection failed: {e}", Color.RED)
 
 def mqtt_publish(name, title):
     if MQTT_ENABLED and mqtt_client:
         topic = f"{MQTT_TOPIC}/{name}"
-        mqtt_client.publish(topic, title, qos=0, retain=True)
-        log(f"MQTT → {topic}: {title}", Color.MAGENTA)
+        try:
+            mqtt_client.publish(topic, title, qos=0, retain=True)
+            log(f"MQTT → {topic}: {title}", Color.MAGENTA)
+        except Exception as e:
+            log(f"MQTT publish failed: {e}", Color.RED)
 
 # ---------------------------------------------------------
 # Async polling
@@ -214,6 +226,6 @@ async def poll_loop():
 # ---------------------------------------------------------
 
 if __name__ == "__main__":
-    log("Start stream metadata monitor", Color.CYAN)
+    log("Start stream monitor (async + MP3 + MQTT + colors) v1.4.1", Color.CYAN)
     mqtt_init()
     asyncio.run(poll_loop())
