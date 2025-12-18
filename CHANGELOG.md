@@ -1,18 +1,25 @@
 # Changelog
 
+## 1.3.0
+- UsuniÄ™to stacje zaszyte w kodzie.
+- Dodano jednÄ… listÄ™ `streams` w konfiguracji (name + url + type).
+- UÅ¼ytkownik moÅ¼e dowolnie usuwaÄ‡, zmieniaÄ‡ i dodawaÄ‡ stacje.
+- Kod uproszczony â€” jedna pÄ™tla obsÅ‚ugujÄ…ca wszystkie ÅºrÃ³dÅ‚a.
+- Przygotowanie pod integracjÄ™ MQTT i autodiscovery.
+
 ## 1.2.0
 - Migracja konfiguracji z `config.json` do `config.yaml`.
-- Dodano obs³ugê nazw dla `custom_streams`.
-- Rozszerzono konfiguracjê o:
+- Dodano obsÅ‚ugÄ™ nazw dla `custom_streams`.
+- Rozszerzono konfiguracjÄ™ o:
   - interval
   - timestamps
-  - w³¹czanie/wy³¹czanie stacji
+  - wÅ‚Ä…czanie/wyÅ‚Ä…czanie stacji
   - custom streams (name + url + type)
-  - ustawienia MQTT (na przysz³oœæ)
+  - ustawienia MQTT (na przyszÅ‚oÅ›Ä‡)
 
 ## 1.1.0
-- Dodano konfiguracjê: interval, timestamps, custom streams (bez nazw), MQTT.
-- Dodano mo¿liwoœæ wy³¹czania stacji.
+- Dodano konfiguracjÄ™: interval, timestamps, custom streams (bez nazw), MQTT.
+- Dodano moÅ¼liwoÅ›Ä‡ wyÅ‚Ä…czania stacji.
 
 ## 1.0.0
-- Pierwsza dzia³aj¹ca wersja add-onu.
+- Pierwsza dziaÅ‚ajÄ…ca wersja add-onu.
