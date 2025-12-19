@@ -2,11 +2,12 @@
 ```markdown
 # Changelog
 
-## 1.4.1 — 2025-12-18
+## 1.4.4 — 2025-12-19
 ### Nowe funkcje
 - Dodano obsługę MQTT user/pass
 - Poprawiono stabilność połączenia MQTT
 - Dodano logi błędów MQTT
+- Poprawiono obsługę polskich znaków
 
 ## 1.4.0 — 2025-12-18
 ### Nowe funkcje
