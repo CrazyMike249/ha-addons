@@ -1,0 +1,31 @@
+<svg width="256" height="300" viewBox="0 0 256 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Home Assistant house outline -->
+  <path d="M32 120 L128 40 L224 120 L224 216 L32 216 Z"
+        fill="#3b82f6" stroke="#1e3a8a" stroke-width="8" stroke-linejoin="round"/>
+
+  <!-- Radio body -->
+  <rect x="64" y="132" width="128" height="64" rx="12" fill="#ffffff" opacity="0.95"/>
+
+  <!-- Speaker grill -->
+  <rect x="80" y="150" width="60" height="10" rx="5" fill="#3b82f6"/>
+  <rect x="80" y="166" width="60" height="10" rx="5" fill="#3b82f6"/>
+
+  <!-- Tuning knob -->
+  <circle cx="168" cy="164" r="18" fill="#3b82f6"/>
+  <circle cx="168" cy="164" r="8" fill="#ffffff"/>
+
+  <!-- Antenna -->
+  <path d="M100 132 L150 100" stroke="#1e3a8a" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="150" cy="100" r="6" fill="#1e3a8a"/>
+
+  <!-- Stylized METADATA text -->
+  <text x="128" y="270"
+        font-size="34"
+        font-weight="700"
+        text-anchor="middle"
+        fill="#1e3a8a"
+        letter-spacing="4"
+        font-family="Arial, Helvetica, sans-serif">
+    METADATA
+  </text>
+</svg>
