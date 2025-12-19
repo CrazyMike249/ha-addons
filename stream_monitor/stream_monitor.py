@@ -232,6 +232,6 @@ async def poll_loop():
 # ---------------------------------------------------------
 
 if __name__ == "__main__":
-    log("Start stream monitor v1.4.3", Color.CYAN)
+    log("Start stream monitor v1.4.4", Color.CYAN)
     mqtt_init()
     asyncio.run(poll_loop())

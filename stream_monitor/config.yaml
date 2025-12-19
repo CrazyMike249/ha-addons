@@ -28,11 +28,7 @@ options:
     - name: "Radio Baobab"
       url: "https://stream.radiobaobab.pl/radiobaobab.ogg"
       type: "ogg"
-
-    - name: RMF_FM
-      url: "http://31.192.216.10:8000/rmf_fm"
-      type: mp3
-            
+          
   mqtt_enabled: true
   mqtt_host: "homeassistant.local"
   mqtt_port: 1883
