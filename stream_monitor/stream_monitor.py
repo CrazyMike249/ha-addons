@@ -53,7 +53,7 @@ def log(msg, color=Color.RESET):
         print(f"{color}{msg}{Color.RESET}", flush=True)
 
 # ---------------------------------------------------------
-# ffprobe helper (RAW bytes, no UTF-8 forcing)
+# ffprobe helper (RAW bytes)
 # ---------------------------------------------------------
 
 def run_ffprobe(cmd) -> bytes:
@@ -69,27 +69,24 @@ def run_ffprobe(cmd) -> bytes:
         return b""
 
 # ---------------------------------------------------------
-# Decode text (PL-safe, no character loss)
+# Decode text (PL-safe)
 # ---------------------------------------------------------
 
 def decode_text(data) -> str:
     if data is None:
         return ""
 
-    # If already str → convert to bytes safely
     if isinstance(data, str):
         raw = data.encode("latin1", errors="replace")
     else:
         raw = data
 
-    # Try common PL encodings
     for enc in ("utf-8", "iso-8859-2", "windows-1250", "latin1"):
         try:
             return raw.decode(enc)
         except UnicodeError:
             continue
 
-    # Fallback: keep everything, replace broken bytes
     return raw.decode("utf-8", errors="replace")
 
 # ---------------------------------------------------------
@@ -123,11 +120,8 @@ def get_ogg_artist_title(url: str) -> str | None:
         data = json.loads(decode_text(out))
         tags = data.get("streams", [{}])[0].get("tags", {})
 
-        artist = tags.get("ARTIST") or tags.get("artist") or ""
-        title = tags.get("TITLE") or tags.get("title") or ""
-
-        artist = decode_text(artist).strip()
-        title = decode_text(title).strip()
+        artist = decode_text(tags.get("ARTIST") or tags.get("artist") or "").strip()
+        title  = decode_text(tags.get("TITLE")  or tags.get("title")  or "").strip()
 
         if artist and title:
             return f"{artist} – {title}"
@@ -135,11 +129,15 @@ def get_ogg_artist_title(url: str) -> str | None:
     except Exception:
         return None
 
+# ---------------------------------------------------------
+# MP3 (POPRAWIONA WERSJA)
+# ---------------------------------------------------------
+
 def get_mp3_icy(url: str) -> str | None:
     # 1. ICY StreamTitle (z timeoutem i reconnect)
     cmd = [
         FFPROBE,
-        "-timeout", "5000000",              # 5s na odebranie ICY
+        "-timeout", "5000000",
         "-reconnect", "1",
         "-reconnect_streamed", "1",
         "-reconnect_delay_max", "2",
@@ -155,7 +153,7 @@ def get_mp3_icy(url: str) -> str | None:
         if title and title not in ("-", " - "):
             return title
 
-    # 2. Fallback: ARTIST/TITLE z tagów
+    # 2. Fallback: ARTIST/TITLE
     cmd = [
         FFPROBE,
         "-timeout", "5000000",
@@ -183,7 +181,6 @@ def get_mp3_icy(url: str) -> str | None:
         return artist or title or None
     except Exception:
         return None
-
 
 # ---------------------------------------------------------
 # Auto-detect
@@ -273,6 +270,6 @@ async def poll_loop():
 # ---------------------------------------------------------
 
 if __name__ == "__main__":
-    log("Start stream monitor (AAC/OGG/MP3 + PL charset + MQTT) v1.4.1", Color.CYAN)
+    log("Start stream monitor (AAC/OGG/MP3 FIXED) v1.4.5", Color.CYAN)
     mqtt_init()
     asyncio.run(poll_loop())
