@@ -1,7 +1,22 @@
 
-```markdown
-# Changelog
+# Changelog — Stream Metadata Monitor
 
+---
+
+## [1.4.5] — 2025-01-19
+### Improved
+- Skrócono timeout ffprobe z 8s → 5s, aby uniknąć blokowania pętli async.
+- Dodano logi diagnostyczne, gdy ffprobe zwraca pusty wynik lub brak metadanych.
+- Ulepszono fallback dla MP3: jeśli `StreamTitle` jest pusty, wykonywana jest dodatkowa próba odczytu `ARTIST/TITLE`.
+- Dodano sanity‑check dla tytułów (`"-"`, `" - "`, puste stringi).
+- Poprawiono czytelność logów ostrzegawczych (kolor YELLOW).
+- Zachowano pełną kompatybilność z 1.4.x (ffprobe‑only, bez parsera ICY).
+
+### Fixed
+- Naprawiono przypadki, w których ffprobe zwracało dane, ale były one odrzucane jako puste.
+- Poprawiono obsługę błędów JSON przy odczycie tagów OGG/MP3.
+
+---
 ## 1.4.4 — 2025-12-19
 ### Nowe funkcje
 - Dodano obsługę MQTT user/pass
