@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 import paho.mqtt.client as mqtt
 
-from icy_reader import icy_get_title
+from icy_reader.py import icy_get_title
 
 FFPROBE = "ffprobe"
 
