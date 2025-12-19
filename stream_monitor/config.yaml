@@ -1,9 +1,12 @@
 name: Stream Metadata Monitor
 version: 1.4.1
 slug: stream_monitor
+url: "https://github.com/CrazyMike249/ha-addons/tree/main/stream_monitor"
 description: Simple async stream metadata monitor with AAC/OGG/MP3, MQTT and colored logs
 startup: services
 boot: auto
+icon: "icon.svg"
+logo: "icon.svg"
 arch:
   - amd64
   - armv7
@@ -14,22 +17,26 @@ options:
   timestamps: true
 
   streams:
-    - name: Radio357
-      url: "https://stream.rcs.revma.com/ye5kghkgcm0uv.aac"
-      type: aac
+    - name: "Radio 357"
+      url: "https://stream.rcs.revma.com/ye5kghkgcm0uv"
+      type: "aac"
+
+    - name: "Radio Nowy Świat"
+      url: "https://stream.nowyswiat.online/aac"
+      type: "aac"
+
+    - name: "Radio Baobab"
+      url: "https://stream.radiobaobab.pl/radiobaobab.ogg"
+      type: "ogg"
 
     - name: RMF_FM
       url: "http://31.192.216.10:8000/rmf_fm"
       type: mp3
-
-    - name: Trojka
-      url: "http://stream3.polskieradio.pl:8904/"
-      type: ogg
-
+            
   mqtt_enabled: true
   mqtt_host: "homeassistant.local"
   mqtt_port: 1883
-  mqtt_user: "majkel"
+  mqtt_user: "mqtt_user"
   mqtt_pass: "TWOJE_HASLO"
   mqtt_topic: "radio/metadata"
 
