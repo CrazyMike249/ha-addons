@@ -136,31 +136,36 @@ def get_ogg_artist_title(url: str) -> str | None:
         return None
 
 def get_mp3_icy(url: str) -> str | None:
-    # 1. ICY StreamTitle
-cmd = [
-    FFPROBE,
-    "-timeout", "5000000",
-    "-reconnect", "1",
-    "-reconnect_streamed", "1",
-    "-reconnect_delay_max", "2",
-    "-loglevel", "quiet",
-    "-icy", "1",
-    "-show_entries", "format_tags=StreamTitle",
-    "-of", "default=nw=1:nk=1",
-    url,
-]
-
+    # 1. ICY StreamTitle (z timeoutem i reconnect)
+    cmd = [
+        FFPROBE,
+        "-timeout", "5000000",              # 5s na odebranie ICY
+        "-reconnect", "1",
+        "-reconnect_streamed", "1",
+        "-reconnect_delay_max", "2",
+        "-loglevel", "quiet",
+        "-icy", "1",
+        "-show_entries", "format_tags=StreamTitle",
+        "-of", "default=nw=1:nk=1",
+        url,
+    ]
     out = run_ffprobe(cmd)
     if out:
         title = decode_text(out).strip()
         if title and title not in ("-", " - "):
             return title
 
-    # 2. Fallback: artist/title tags
+    # 2. Fallback: ARTIST/TITLE z tagów
     cmd = [
-        FFPROBE, "-loglevel", "quiet",
+        FFPROBE,
+        "-timeout", "5000000",
+        "-reconnect", "1",
+        "-reconnect_streamed", "1",
+        "-reconnect_delay_max", "2",
+        "-loglevel", "quiet",
         "-show_entries", "stream_tags=ARTIST,TITLE,artist,title",
-        "-of", "json", url,
+        "-of", "json",
+        url,
     ]
     out = run_ffprobe(cmd)
     if not out:
@@ -170,17 +175,15 @@ cmd = [
         data = json.loads(decode_text(out))
         tags = data.get("streams", [{}])[0].get("tags", {})
 
-        artist = tags.get("ARTIST") or tags.get("artist") or ""
-        title = tags.get("TITLE") or tags.get("title") or ""
-
-        artist = decode_text(artist).strip()
-        title = decode_text(title).strip()
+        artist = decode_text(tags.get("ARTIST") or tags.get("artist") or "").strip()
+        title  = decode_text(tags.get("TITLE")  or tags.get("title")  or "").strip()
 
         if artist and title:
             return f"{artist} – {title}"
         return artist or title or None
     except Exception:
         return None
+
 
 # ---------------------------------------------------------
 # Auto-detect
