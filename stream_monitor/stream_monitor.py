@@ -53,37 +53,44 @@ def log(msg, color=Color.RESET):
         print(f"{color}{msg}{Color.RESET}", flush=True)
 
 # ---------------------------------------------------------
-# ffprobe helper
+# ffprobe helper (RAW bytes, no UTF-8 forcing)
 # ---------------------------------------------------------
 
-def run_ffprobe(cmd):
+def run_ffprobe(cmd) -> bytes:
     try:
         result = subprocess.run(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True,
-            encoding="utf-8",
             timeout=8,
         )
-        return result.stdout.strip()
+        return result.stdout or b""
     except Exception:
-        return None
+        return b""
 
 # ---------------------------------------------------------
-# Decode text
+# Decode text (PL-safe, no character loss)
 # ---------------------------------------------------------
 
-def decode_text(value: str) -> str:
-    if not value:
-        return value
-    raw = value.encode("latin1", errors="ignore")
+def decode_text(data) -> str:
+    if data is None:
+        return ""
+
+    # If already str → convert to bytes safely
+    if isinstance(data, str):
+        raw = data.encode("latin1", errors="replace")
+    else:
+        raw = data
+
+    # Try common PL encodings
     for enc in ("utf-8", "iso-8859-2", "windows-1250", "latin1"):
         try:
             return raw.decode(enc)
-        except Exception:
-            pass
-    return value
+        except UnicodeError:
+            continue
+
+    # Fallback: keep everything, replace broken bytes
+    return raw.decode("utf-8", errors="replace")
 
 # ---------------------------------------------------------
 # AAC / OGG / MP3
@@ -98,25 +105,30 @@ def get_aac_streamtitle(url: str) -> str | None:
     out = run_ffprobe(cmd)
     if not out:
         return None
-    title = out.strip()
+    title = decode_text(out).strip()
     if not title or title in ("-", " - "):
         return None
-    return decode_text(title)
+    return title
 
 def get_ogg_artist_title(url: str) -> str | None:
     cmd = [
         FFPROBE, "-loglevel", "quiet",
-        "-show_entries", "stream_tags=ARTIST,TITLE",
+        "-show_entries", "stream_tags=ARTIST,TITLE,artist,title",
         "-of", "json", url,
     ]
     out = run_ffprobe(cmd)
     if not out:
         return None
     try:
-        data = json.loads(out)
+        data = json.loads(decode_text(out))
         tags = data.get("streams", [{}])[0].get("tags", {})
-        artist = decode_text(tags.get("ARTIST", "").strip())
-        title = decode_text(tags.get("TITLE", "").strip())
+
+        artist = tags.get("ARTIST") or tags.get("artist") or ""
+        title = tags.get("TITLE") or tags.get("title") or ""
+
+        artist = decode_text(artist).strip()
+        title = decode_text(title).strip()
+
         if artist and title:
             return f"{artist} – {title}"
         return artist or title or None
@@ -124,18 +136,43 @@ def get_ogg_artist_title(url: str) -> str | None:
         return None
 
 def get_mp3_icy(url: str) -> str | None:
+    # 1. ICY StreamTitle
     cmd = [
         FFPROBE, "-loglevel", "quiet", "-icy", "1",
         "-show_entries", "format_tags=StreamTitle",
         "-of", "default=nw=1:nk=1", url,
     ]
     out = run_ffprobe(cmd)
+    if out:
+        title = decode_text(out).strip()
+        if title and title not in ("-", " - "):
+            return title
+
+    # 2. Fallback: artist/title tags
+    cmd = [
+        FFPROBE, "-loglevel", "quiet",
+        "-show_entries", "stream_tags=ARTIST,TITLE,artist,title",
+        "-of", "json", url,
+    ]
+    out = run_ffprobe(cmd)
     if not out:
         return None
-    title = out.strip()
-    if not title or title in ("-", " - "):
+
+    try:
+        data = json.loads(decode_text(out))
+        tags = data.get("streams", [{}])[0].get("tags", {})
+
+        artist = tags.get("ARTIST") or tags.get("artist") or ""
+        title = tags.get("TITLE") or tags.get("title") or ""
+
+        artist = decode_text(artist).strip()
+        title = decode_text(title).strip()
+
+        if artist and title:
+            return f"{artist} – {title}"
+        return artist or title or None
+    except Exception:
         return None
-    return decode_text(title)
 
 # ---------------------------------------------------------
 # Auto-detect
@@ -196,18 +233,6 @@ def mqtt_publish(name, title):
             log(f"MQTT publish failed: {e}", Color.RED)
 
 # ---------------------------------------------------------
-# MQTT TEST
-# ---------------------------------------------------------
-
-def mqtt_test():
-    if MQTT_ENABLED and mqtt_client:
-        try:
-            mqtt_client.publish("radio/test", "hello", qos=0, retain=True)
-            log("MQTT TEST SENT", Color.MAGENTA)
-        except Exception as e:
-            log(f"MQTT TEST FAILED: {e}", Color.RED)
-
-# ---------------------------------------------------------
 # Async polling
 # ---------------------------------------------------------
 
@@ -237,7 +262,6 @@ async def poll_loop():
 # ---------------------------------------------------------
 
 if __name__ == "__main__":
-    log("Start stream monitor (async + MP3 + MQTT + colors) v1.4.2", Color.CYAN)
+    log("Start stream monitor (AAC/OGG/MP3 + PL charset + MQTT) v1.4.1", Color.CYAN)
     mqtt_init()
-    mqtt_test()   # <-- KLUCZOWE: test publikacji
     asyncio.run(poll_loop())
