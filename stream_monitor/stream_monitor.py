@@ -4,8 +4,6 @@ import json
 from datetime import datetime
 import paho.mqtt.client as mqtt
 
-from icy_reader.py import icy_get_title
-
 FFPROBE = "ffprobe"
 
 # ---------------------------------------------------------
@@ -55,7 +53,7 @@ def log(msg, color=Color.RESET):
         print(f"{color}{msg}{Color.RESET}", flush=True)
 
 # ---------------------------------------------------------
-# ffprobe helper (RAW bytes) – używamy dalej dla AAC/OGG
+# ffprobe helper (RAW bytes)
 # ---------------------------------------------------------
 
 def run_ffprobe(cmd) -> bytes:
@@ -92,7 +90,107 @@ def decode_text(data) -> str:
     return raw.decode("utf-8", errors="replace")
 
 # ---------------------------------------------------------
-# AAC / OGG
+# ICY MP3 PARSER (wbudowany)
+# ---------------------------------------------------------
+
+async def icy_get_title(url: str) -> str | None:
+    if not url.startswith("http://"):
+        return None
+
+    try:
+        _, rest = url.split("://", 1)
+        host_port, path = rest.split("/", 1)
+        path = "/" + path
+
+        if ":" in host_port:
+            host, port = host_port.split(":", 1)
+            port = int(port)
+        else:
+            host = host_port
+            port = 80
+    except Exception:
+        return None
+
+    reader = None
+    writer = None
+
+    try:
+        reader, writer = await asyncio.open_connection(host, port)
+
+        req = (
+            f"GET {path} HTTP/1.0\r\n"
+            f"Host: {host}\r\n"
+            f"Icy-MetaData: 1\r\n"
+            f"User-Agent: StreamMetadataMonitor/1.5.0\r\n"
+            f"Connection: close\r\n\r\n"
+        )
+        writer.write(req.encode("ascii", errors="ignore"))
+        await writer.drain()
+
+        headers = b""
+        while b"\r\n\r\n" not in headers:
+            chunk = await reader.read(1024)
+            if not chunk:
+                return None
+            headers += chunk
+
+        header_block, rest = headers.split(b"\r\n\r\n", 1)
+        header_text = header_block.decode("latin1", errors="ignore")
+
+        metaint = 0
+        for line in header_text.split("\r\n"):
+            if line.lower().startswith("icy-metaint:"):
+                try:
+                    metaint = int(line.split(":", 1)[1].strip())
+                except:
+                    metaint = 0
+
+        if metaint <= 0:
+            return None
+
+        already = len(rest)
+        to_skip = max(metaint - already, 0)
+
+        while to_skip > 0:
+            chunk = await reader.read(min(4096, to_skip))
+            if not chunk:
+                return None
+            to_skip -= len(chunk)
+
+        meta_len_byte = await reader.read(1)
+        if not meta_len_byte:
+            return None
+
+        meta_len = meta_len_byte[0] * 16
+        if meta_len == 0:
+            return None
+
+        metadata = await reader.read(meta_len)
+        if not metadata:
+            return None
+
+        text = metadata.decode("latin1", errors="ignore")
+
+        marker = "StreamTitle='"
+        if marker in text:
+            title = text.split(marker, 1)[1].split("';", 1)[0]
+            return title.strip() or None
+
+        return None
+
+    except Exception:
+        return None
+
+    finally:
+        if writer:
+            try:
+                writer.close()
+                await writer.wait_closed()
+            except:
+                pass
+
+# ---------------------------------------------------------
+# AAC / OGG (ffprobe)
 # ---------------------------------------------------------
 
 def get_aac_streamtitle(url: str) -> str | None:
@@ -132,20 +230,6 @@ def get_ogg_artist_title(url: str) -> str | None:
         return None
 
 # ---------------------------------------------------------
-# MP3 – NOWA WERSJA: własny parser ICY
-# ---------------------------------------------------------
-
-async def get_mp3_icy_async(url: str) -> str | None:
-    """
-    MP3/ICY: korzystamy z własnego parsera (icy_reader), bez ffprobe.
-    """
-    title = await icy_get_title(url)
-    if not title:
-        return None
-    # Dekodowanie PL znaków na wszelki wypadek
-    return decode_text(title).strip() or None
-
-# ---------------------------------------------------------
 # Auto-detect
 # ---------------------------------------------------------
 
@@ -155,18 +239,18 @@ async def get_metadata_async(url: str, stype: str | None) -> str | None:
     if stype == "ogg":
         return get_ogg_artist_title(url)
     if stype == "mp3":
-        return await get_mp3_icy_async(url)
+        return await icy_get_title(url)
 
-    # Auto-detect – najpierw MP3/ICY, potem AAC, na końcu OGG
-    for fn in (
-        lambda u: get_mp3_icy_async(u),
-        lambda u: asyncio.to_thread(get_aac_streamtitle, u),
-        lambda u: asyncio.to_thread(get_ogg_artist_title, u),
-    ):
-        title = await fn(url)
-        if title:
-            return title
-    return None
+    # Auto-detect
+    title = await icy_get_title(url)
+    if title:
+        return title
+
+    title = get_aac_streamtitle(url)
+    if title:
+        return title
+
+    return get_ogg_artist_title(url)
 
 # ---------------------------------------------------------
 # MQTT
@@ -239,5 +323,4 @@ async def poll_loop():
 
 if __name__ == "__main__":
     log("Start stream monitor (AAC/OGG + ICY MP3) v1.4.2", Color.CYAN)
-    mqtt_init()
-    asyncio.run(poll_loop())
+    mqtt_init
