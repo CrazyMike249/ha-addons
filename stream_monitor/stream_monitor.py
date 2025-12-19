@@ -62,7 +62,7 @@ def run_ffprobe(cmd) -> bytes:
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            timeout=5,  # szybszy timeout
+            timeout=8,
         )
         return result.stdout or b""
     except Exception:
