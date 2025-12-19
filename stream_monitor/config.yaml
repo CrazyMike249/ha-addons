@@ -28,6 +28,10 @@ options:
     - name: "Radio Baobab"
       url: "https://stream.radiobaobab.pl/radiobaobab.ogg"
       type: "ogg"
+
+    - name: "Ljublana Rock Radio Classics"
+      url: "https://stream.nextmedia.si/proxy/rocks_3?mp=/stream"
+      type: "mp3"
           
   mqtt_enabled: true
   mqtt_host: "homeassistant.local"
