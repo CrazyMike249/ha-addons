@@ -1,5 +1,5 @@
 name: Stream Metadata Monitor
-version: 1.4.4
+version: 1.5.0
 slug: stream_monitor
 url: "https://github.com/CrazyMike249/ha-addons/tree/main/stream_monitor"
 description: Simple async stream metadata monitor with AAC/OGG/MP3, MQTT and colored logs
