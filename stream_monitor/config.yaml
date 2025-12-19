@@ -5,8 +5,8 @@ url: "https://github.com/CrazyMike249/ha-addons/tree/main/stream_monitor"
 description: Simple async stream metadata monitor with AAC/OGG/MP3, MQTT and colored logs
 startup: services
 boot: auto
-icon: "icon.svg"
-logo: "icon.svg"
+icon: "icon.png"
+logo: "icon.png"
 arch:
   - amd64
   - armv7
