@@ -3,7 +3,7 @@
 
 ---
 
-## [1.4.5] — 2025-01-19
+## [1.4.5] — 2025-12-19
 ### Improved
 - Skrócono timeout ffprobe z 8s → 5s, aby uniknąć blokowania pętli async.
 - Dodano logi diagnostyczne, gdy ffprobe zwraca pusty wynik lub brak metadanych.
