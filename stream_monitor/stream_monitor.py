@@ -137,11 +137,19 @@ def get_ogg_artist_title(url: str) -> str | None:
 
 def get_mp3_icy(url: str) -> str | None:
     # 1. ICY StreamTitle
-    cmd = [
-        FFPROBE, "-loglevel", "quiet", "-icy", "1",
-        "-show_entries", "format_tags=StreamTitle",
-        "-of", "default=nw=1:nk=1", url,
-    ]
+cmd = [
+    FFPROBE,
+    "-timeout", "5000000",
+    "-reconnect", "1",
+    "-reconnect_streamed", "1",
+    "-reconnect_delay_max", "2",
+    "-loglevel", "quiet",
+    "-icy", "1",
+    "-show_entries", "format_tags=StreamTitle",
+    "-of", "default=nw=1:nk=1",
+    url,
+]
+
     out = run_ffprobe(cmd)
     if out:
         title = decode_text(out).strip()
