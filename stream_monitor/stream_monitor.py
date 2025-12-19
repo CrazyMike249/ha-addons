@@ -4,6 +4,8 @@ import json
 from datetime import datetime
 import paho.mqtt.client as mqtt
 
+from icy_reader import icy_get_title
+
 FFPROBE = "ffprobe"
 
 # ---------------------------------------------------------
@@ -53,7 +55,7 @@ def log(msg, color=Color.RESET):
         print(f"{color}{msg}{Color.RESET}", flush=True)
 
 # ---------------------------------------------------------
-# ffprobe helper (RAW bytes)
+# ffprobe helper (RAW bytes) – używamy dalej dla AAC/OGG
 # ---------------------------------------------------------
 
 def run_ffprobe(cmd) -> bytes:
@@ -90,7 +92,7 @@ def decode_text(data) -> str:
     return raw.decode("utf-8", errors="replace")
 
 # ---------------------------------------------------------
-# AAC / OGG / MP3
+# AAC / OGG
 # ---------------------------------------------------------
 
 def get_aac_streamtitle(url: str) -> str | None:
@@ -130,72 +132,38 @@ def get_ogg_artist_title(url: str) -> str | None:
         return None
 
 # ---------------------------------------------------------
-# MP3 (POPRAWIONA WERSJA)
+# MP3 – NOWA WERSJA: własny parser ICY
 # ---------------------------------------------------------
 
-def get_mp3_icy(url: str) -> str | None:
-    # 1. ICY StreamTitle (z timeoutem i reconnect)
-    cmd = [
-        FFPROBE,
-        "-timeout", "5000000",
-        "-reconnect", "1",
-        "-reconnect_streamed", "1",
-        "-reconnect_delay_max", "2",
-        "-loglevel", "quiet",
-        "-icy", "1",
-        "-show_entries", "format_tags=StreamTitle",
-        "-of", "default=nw=1:nk=1",
-        url,
-    ]
-    out = run_ffprobe(cmd)
-    if out:
-        title = decode_text(out).strip()
-        if title and title not in ("-", " - "):
-            return title
-
-    # 2. Fallback: ARTIST/TITLE
-    cmd = [
-        FFPROBE,
-        "-timeout", "5000000",
-        "-reconnect", "1",
-        "-reconnect_streamed", "1",
-        "-reconnect_delay_max", "2",
-        "-loglevel", "quiet",
-        "-show_entries", "stream_tags=ARTIST,TITLE,artist,title",
-        "-of", "json",
-        url,
-    ]
-    out = run_ffprobe(cmd)
-    if not out:
+async def get_mp3_icy_async(url: str) -> str | None:
+    """
+    MP3/ICY: korzystamy z własnego parsera (icy_reader), bez ffprobe.
+    """
+    title = await icy_get_title(url)
+    if not title:
         return None
-
-    try:
-        data = json.loads(decode_text(out))
-        tags = data.get("streams", [{}])[0].get("tags", {})
-
-        artist = decode_text(tags.get("ARTIST") or tags.get("artist") or "").strip()
-        title  = decode_text(tags.get("TITLE")  or tags.get("title")  or "").strip()
-
-        if artist and title:
-            return f"{artist} – {title}"
-        return artist or title or None
-    except Exception:
-        return None
+    # Dekodowanie PL znaków na wszelki wypadek
+    return decode_text(title).strip() or None
 
 # ---------------------------------------------------------
 # Auto-detect
 # ---------------------------------------------------------
 
-def get_metadata(url: str, stype: str | None) -> str | None:
+async def get_metadata_async(url: str, stype: str | None) -> str | None:
     if stype == "aac":
         return get_aac_streamtitle(url)
     if stype == "ogg":
         return get_ogg_artist_title(url)
     if stype == "mp3":
-        return get_mp3_icy(url)
+        return await get_mp3_icy_async(url)
 
-    for fn in (get_aac_streamtitle, get_mp3_icy, get_ogg_artist_title):
-        title = fn(url)
+    # Auto-detect – najpierw MP3/ICY, potem AAC, na końcu OGG
+    for fn in (
+        lambda u: get_mp3_icy_async(u),
+        lambda u: asyncio.to_thread(get_aac_streamtitle, u),
+        lambda u: asyncio.to_thread(get_ogg_artist_title, u),
+    ):
+        title = await fn(url)
         if title:
             return title
     return None
@@ -248,7 +216,7 @@ async def poll_single(name, info):
     url = info["url"]
     stype = info["type"]
 
-    title = get_metadata(url, stype)
+    title = await get_metadata_async(url, stype)
     if not title:
         return
 
@@ -270,6 +238,6 @@ async def poll_loop():
 # ---------------------------------------------------------
 
 if __name__ == "__main__":
-    log("Start stream monitor (AAC/OGG/MP3 FIXED) v1.4.5", Color.CYAN)
+    log("Start stream monitor (AAC/OGG + ICY MP3) v1.4.2", Color.CYAN)
     mqtt_init()
     asyncio.run(poll_loop())
