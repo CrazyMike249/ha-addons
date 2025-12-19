@@ -1,4 +1,4 @@
-# Stream Metadata Monitor — v1.4.1
+# Stream Metadata Monitor — v1.4.4
 
 Lekki, szybki i niezależny add-on do Home Assistant, który pobiera metadane
 ze streamów radiowych (AAC/OGG/MP3) i wysyła je do logów oraz opcjonalnie do MQTT.
@@ -27,6 +27,6 @@ streams:
 mqtt_enabled: true
 mqtt_host: "homeassistant.local"
 mqtt_port: 1883
-mqtt_user: "majkel"
+mqtt_user: "mqqt_user"
 mqtt_pass: "TWOJE_HASLO"
 mqtt_topic: "radio/metadata"
